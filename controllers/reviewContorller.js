@@ -6,76 +6,79 @@ const { calculateAverageRating } = require('../utils/ratingUtils');
 
 // Create a new review
 exports.addReview = async (req, res) => {
-    try {
-      const { menuItems,orderId, rating, comment } = req.body;
-      const userId = req.user.id;
-      
+  try {
+    const { menuItems, orderId, rating, comment } = req.body;
+    const userId = req.user.id;
 
-      if (!userId) {
-        return res.status(400).json({ message: "User ID is required" });
-      }
-  
-      const foundMenuItem = await MenuItems.findById(menuItems);
-      if (!foundMenuItem) {
-        return res.status(404).json({ message: "MenuItem not found" });
-      }
-
-      const order = await Order.findById(orderId).populate("cartId");
-    let isMatch;
-    order.cartId.items.some((item) => {
-      isMatch = item.foodId.toString() === menuId.toString();
-      return isMatch;
-    });
-    if (order.status !== "delivered") {
-      return res.status(400).json({
-        message:
-          "Your order is not delivered, please try once order is delivered",
-      });
+    if (!userId) {
+      return res.status(400).json({ message: "User ID is required" });
     }
-    const existingReview = await Review.findOne({
-      user: user,
-      menuId: menuId,
-      orderId: orderId,
-    });
 
-    if (existingReview) {
-      return res.status(400).json({
-        message:
-          "You can only submit one review per delivered order for this menu item.",
-      });
+    const foundMenuItem = await MenuItems.findById(menuItems);
+    if (!foundMenuItem) {
+      return res.status(404).json({ message: "MenuItem not found" });
     }
+
+    const order = await Order.findById(orderId).populate("cartId");
+    if (!order) {
+      return res.status(404).json({ message: "Order not found" });
+    }
+
+    let isMatch = order.cartId.items.some(
+      (item) => item.itemId.toString() === menuItems.toString()
+    );
+
     if (!isMatch) {
       return res.status(400).json({
         message: "Item not found in order",
       });
     }
-  
-      const newReview = new Review({
-        user: userId,
-        menuItems,
-        rating,
-        comment,
+
+    if (order.status !== "delivered") {
+      return res.status(400).json({
+        message: "Your order is not delivered, please try once order is delivered",
       });
-  
-      const savedReview = await newReview.save();
-
-      foundMenuItem.customerReviews.push(savedReview._id);
-
-      const averageRatingMenu = await calculateAverageRating(MenuItems,menuItems);
-      foundMenuItem.rating = averageRatingMenu;
-
-      const restaurantId = foundMenuItem.restaurant;
-      const averageRatingRestaurant = await calculateAverageRating(Restaurant,restaurantId);
-      await Restaurant.findByIdAndUpdate(restaurantId,{rating: averageRatingRestaurant});
-      
-      await foundMenuItem.save();
-      await savedReview.populate("menuItems","name price");
-
-      res.status(201).json({message:"Review submitted successfully",savedReview});
-    } catch (error) {
-      res.status(500).json({ message:error.message });
     }
-  };
+
+    const existingReview = await Review.findOne({
+      user: userId,
+      menuItems,
+      orderId,
+    });
+
+    if (existingReview) {
+      return res.status(400).json({
+        message: "You can only submit one review per delivered order for this menu item.",
+      });
+    }
+
+    const newReview = new Review({
+      user: userId,
+      menuItems,
+      rating,
+      comment,
+    });
+
+    const savedReview = await newReview.save();
+
+    foundMenuItem.customerReviews.push(savedReview._id);
+
+    const averageRatingMenu = await calculateAverageRating(MenuItems, menuItems);
+    foundMenuItem.rating = averageRatingMenu;
+
+    const restaurantId = foundMenuItem.restaurant;
+    const averageRatingRestaurant = await calculateAverageRating(Restaurant, restaurantId);
+    await Restaurant.findByIdAndUpdate(restaurantId, { rating: averageRatingRestaurant });
+
+    await foundMenuItem.save();
+    await savedReview.populate("menuItems", "name price");
+
+    res.status(201).json({ message: "Review submitted successfully", savedReview });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
   
   // Get all reviews
 exports.getAllReviews = async (req, res) => {

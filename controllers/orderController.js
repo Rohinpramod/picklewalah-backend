@@ -20,7 +20,18 @@ exports.createOrder = async (req, res) => {
             coupon,
             deliveryAddress,
         } = req.body;
+
+        const cart = await Cart.findById(cartId);
+        if(!cart){
+          return res.status(404).json({message:"Cart not found"});
+        }
+
+        const totalAmount = cart.totalPrice;
+        let finalPrice = cart.finalPrice;
+
+        
         const findCoupon = await Coupon.findOne({ code:coupon }); 
+
         let order = await Order.findOne({user})
         // if (!order || order.status !== "pending") {
             order = new Order({
@@ -28,10 +39,11 @@ exports.createOrder = async (req, res) => {
               cartId,
               coupon:findCoupon?._id,
               deliveryAddress,
+              finalPrice,
+              
             });
-          // } else {
-          //   return res.status(400).json({ message: "An order is already in pending status" });
-          // }
+
+          console.log(order,'=====order')
         await order.save();
         res.status(201).json({ message: "Order created successfully", order: order });
     } catch (error) {
@@ -54,7 +66,7 @@ exports.getAllOrders = async (req,res)=>{
           },
         })
         .populate("coupon", "code discountPercentage maxDiscountValue")
-        .populate("deliveryAddress", "street city state zipCode")
+        .populate("deliveryAddress", "street city state postalCode")
         if(!orders){
             return res.status(404).json({message: "No orders found for this profile"})
         }

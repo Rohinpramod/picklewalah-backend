@@ -15,12 +15,13 @@ exports.createPayment = async (req, res) => {
   try {
     const user = req.user.id;
     const { orderId } = req.params;
+    
 
     const order = await Order.findById(orderId);
-    console.log(order,'=====order')
     if(!order){
       return res.status(404).json({message: 'order not found'})
     }
+    
     if (order.status !== "pending") {
       if (order.status === "cancelled") {
         return res
@@ -37,40 +38,34 @@ exports.createPayment = async (req, res) => {
           "You have already made the payment for this order,your order in on the way",
       });
     }
-    if(!order.finalPrice || typeof order.finalPrice !== 'number'){
-      return res.status(400).json({message:'Order final price is missing or invalid'});
+    const amount = order.finalPrice;
+    if (!amount || isNaN(amount)) {
+      return res.status(400).json({ message: 'Invalid order amount' });
     }
-  
-    const amountInPaisa = order.finalPrice * 100;
-    console.log('Final price in paisa:',amountInPaisa);
-
+    const amountInPaisa = amount * 100;
     const razorpayOrder = await razorpay.orders.create({
       amount: amountInPaisa,
       currency: "INR",
       receipt: `recepit_${Date.now()}`,
-      notes: { 
-        orderId: order._id.toString(), 
-        userId: user.toString() },
+      notes: { orderId: order, userId: user },
     });
 
     const newPayment = new Payment({
       orderId,
       user,
-      amount: order.finalPrice,
+      amount,
       status: "pending",
       transactionId: razorpayOrder.id,
     });
 
     const savedPayment = await newPayment.save();
-
     res.status(201).json({
       message: "Payment initiated successfully",
       payment: savedPayment,
       razorpayOrder,
     });
-    
   } catch (error) {
-    console.log('Error in createPayment',error);
+    console.log(error)
     res.status(500).json({ message:error.message});
   }
 };

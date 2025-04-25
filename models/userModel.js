@@ -16,7 +16,9 @@ const userSchema = new mongoose.Schema({
         state: String,
         zipCode: String,
         coordinates: { type: [Number], index: '2dsphere' } 
+    
     }],
+    role:[{type:String,default:'user'}],
     createdAt: { type: Date, default: Date.now }
 });
 
