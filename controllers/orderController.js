@@ -12,44 +12,50 @@ const ORDER_STATUS = [
   ];
 
 
-exports.createOrder = async (req, res) => {
+  exports.createOrder = async (req, res) => {
     try {
-        const user = req.user.id
-        const {
-            cartId,
-            coupon,
-            deliveryAddress,
-        } = req.body;
-
-        const cart = await Cart.findById(cartId);
-        if(!cart){
-          return res.status(404).json({message:"Cart not found"});
+      const user = req.user.id;
+      const { cartId, coupon, deliveryAddress } = req.body;
+  
+      const cart = await Cart.findById(cartId);
+      if (!cart) {
+        return res.status(404).json({ message: "Cart not found" });
+      }
+  
+      let totalAmount = cart.totalPrice; // Original total
+      let finalPrice = totalAmount;       // Default to total price
+  
+      let appliedCoupon = null;
+  
+      if (coupon) {
+        const findCoupon = await Coupon.findOne({ code: coupon });
+  
+        if (findCoupon) {
+          appliedCoupon = findCoupon; // save the coupon
+          const discountPercent = findCoupon.discount || 0;
+          finalPrice = totalAmount - (totalAmount * discountPercent) / 100;
+          finalPrice = parseFloat(finalPrice.toFixed(2)); // Optional: round
         }
-
-        const totalAmount = cart.totalPrice;
-        let finalPrice = cart.finalPrice;
-
-        
-        const findCoupon = await Coupon.findOne({ code:coupon }); 
-
-        let order = await Order.findOne({user})
-        // if (!order || order.status !== "pending") {
-            order = new Order({
-              user,
-              cartId,
-              coupon:findCoupon?._id,
-              deliveryAddress,
-              finalPrice,
-              
-            });
-
-          console.log(order,'=====order')
-        await order.save();
-        res.status(201).json({ message: "Order created successfully", order: order });
+      }
+  
+      const order = new Order({
+        user,
+        cartId,
+        coupon: appliedCoupon ? appliedCoupon._id : undefined,
+        deliveryAddress,
+        finalPrice,
+      });
+  
+      console.log(order, '=====order');
+      await order.save();
+  
+      res.status(201).json({ message: "Order created successfully", order: order });
     } catch (error) {
-        res.status(500).json({ message: error.message });
+      console.error(error);
+      res.status(500).json({ message: error.message });
     }
-};
+  };
+  
 
 
 exports.getAllOrders = async (req,res)=>{
