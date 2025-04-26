@@ -4,6 +4,7 @@ const dotenv = require("dotenv");
 const Order = require("../models/orderModel");
 const crypto = require("crypto");
 const Cart = require("../models/cartModel");
+const sendEmail = require('../utils/nodemailer');
 
 dotenv.config();
 
@@ -95,6 +96,19 @@ exports.verifyPayment = async (req, res) => {
         { cartStatus: "ordered" },
         { new: true }
       );
+      const adminEmail = process.env.ADMIN_EMAIL;
+      const subject = 'New Payment Successful!';
+      const text = `A new payment has been successfully completed.
+      
+      Order ID: ${order._id}
+      User ID: ${payment.user}
+      Amount Paid: ₹${payment.amount}
+      Transaction ID: ${payment.transactionId}
+      
+      Please check the admin panel for more details.`;
+
+      await sendEmail(adminEmail, subject, text);
+      
       return res.status(200).json({ message: "Payment is successful" });
     } else {
       return res
