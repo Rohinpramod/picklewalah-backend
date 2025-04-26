@@ -22,20 +22,44 @@ const ORDER_STATUS = [
         return res.status(404).json({ message: "Cart not found" });
       }
   
-      let totalAmount = cart.totalPrice; // Original total
-      let finalPrice = totalAmount;       // Default to total price
-  
+      let totalAmount = cart.totalPrice;
+      let finalPrice = totalAmount;
       let appliedCoupon = null;
   
       if (coupon) {
         const findCoupon = await Coupon.findOne({ code: coupon });
   
-        if (findCoupon) {
-          appliedCoupon = findCoupon; // save the coupon
-          const discountPercent = findCoupon.discount || 0;
-          finalPrice = totalAmount - (totalAmount * discountPercent) / 100;
-          finalPrice = parseFloat(finalPrice.toFixed(2)); // Optional: round
+        if (!findCoupon) {
+          return res.status(400).json({ message: "Invalid coupon code" });
         }
+  
+        if (!findCoupon.isActive) {
+          return res.status(400).json({ message: "Coupon is inactive" });
+        }
+  
+        if (new Date() > findCoupon.expiryDate) {
+          return res.status(400).json({ message: "Coupon has expired" });
+        }
+  
+        // Check minimum order value
+        if (totalAmount < findCoupon.minOrderValue) {
+          return res.status(400).json({ message: `Minimum order value must be ₹${findCoupon.minOrderValue}` });
+        }
+  
+        appliedCoupon = findCoupon;
+  
+        // Calculate discount
+        let discountAmount = (totalAmount * findCoupon.discountPercentage) / 100;
+  
+        // Apply maximum discount cap
+        if (discountAmount > findCoupon.maxDiscountValue) {
+          discountAmount = findCoupon.maxDiscountValue;
+        }
+  
+        finalPrice = totalAmount - discountAmount;
+  
+        if (finalPrice < 0) finalPrice = 0;
+        finalPrice = parseFloat(finalPrice.toFixed(2));
       }
   
       const order = new Order({
@@ -46,7 +70,6 @@ const ORDER_STATUS = [
         finalPrice,
       });
   
-      console.log(order, '=====order');
       await order.save();
   
       res.status(201).json({ message: "Order created successfully", order: order });
@@ -56,7 +79,6 @@ const ORDER_STATUS = [
     }
   };
   
-
 
 exports.getAllOrders = async (req,res)=>{
     try{
