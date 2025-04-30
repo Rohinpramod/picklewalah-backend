@@ -80,10 +80,10 @@ const ORDER_STATUS = [
   };
   
 
-exports.getAllOrders = async (req,res)=>{
-    try{
-        const user = req.user.id
-        const orders = await Order.find({user}).sort({createdAt:-1})
+  exports.getAllOrders = async (req, res) => {
+    try {
+      const orders = await Order.find() // No filter here
+        .sort({ createdAt: -1 })
         .populate("user", "name email phone")
         .populate({
           path: "cartId",
@@ -94,15 +94,17 @@ exports.getAllOrders = async (req,res)=>{
           },
         })
         .populate("coupon", "code discountPercentage maxDiscountValue")
-        .populate("deliveryAddress", "street city state postalCode")
-        if(!orders){
-            return res.status(404).json({message: "No orders found for this profile"})
-        }
-        res.status(200).json({message: "Orders found successfully", orders})
-    }catch(error){
-        res.status(500).json({message: error.message})
+        .populate("deliveryAddress", "street city state postalCode");
+  
+      if (!orders || orders.length === 0) {
+        return res.status(404).json({ message: "No orders found" });
+      }
+  
+      res.status(200).json({ message: "Orders found successfully", orders });
+    } catch (error) {
+      res.status(500).json({ message: error.message });
     }
-  }
+  };
   
   exports.getOrderById = async (req, res) => {
     try {
@@ -190,18 +192,19 @@ exports.getAllOrders = async (req,res)=>{
 
   
   
-  exports.getAllOrdersByUser = async (req,res)=>{
-    try{
-        
-        const orders = await Order.find({status: { $ne: "cancelled" }})
-        .populate("user", "name email phone")
-        .populate("cartId", "items totalPrice")
-        .populate("coupon", "code discountPercentage maxDiscountValue") 
-        if(!orders){
-            return res.status(404).json({message: "No orders found for this profile"})
-        }
-        res.status(200).json({message: "Orders found successfully", orders})
-    }catch(error){
-        res.status(500).json({message: error.message})
+  exports.getUserOrders = async (req, res) => {
+    try {
+      const userId = req.user.id; // Assuming you have middleware that sets req.user
+  
+      const orders = await Order.find({ user: userId }).sort({ createdAt: -1 }); // Sort by newest first
+  
+      res.status(200).json({
+        success: true,
+        count: orders.length,
+        data: orders
+      });
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ success: false, message: 'Server Error' });
     }
-  }
+  };

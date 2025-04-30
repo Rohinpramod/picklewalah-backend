@@ -42,6 +42,7 @@ app.use('/api/review',authMiddleware,reviewRoutes);
 app.use('/api/coupon',authMiddleware,couponRoutes);
 app.use('/api/order',authMiddleware,orderRoutes);
 
+
 app.get("/", (req,res) => {
     res.send("API Running capstone Project");
     
