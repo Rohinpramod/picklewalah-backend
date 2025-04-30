@@ -3,14 +3,13 @@ const Address = require("../models/addressModel");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const { generateToken } = require("../utils/token");
-const sendEmail = require('../utils/nodemailer');
-const Otp = require('../models/otp');
+const sendEmail = require("../utils/nodemailer");
+const Otp = require("../models/otp");
 
-const emailRegex = (
-    /(?:[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*|"(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21\x23-\x5b\x5d-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])*")@(?:(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?|\[(?:(?:(2(5[0-5]|[0-4][0-9])|1[0-9][0-9]|[1-9]?[0-9]))\.){3}(?:(2(5[0-5]|[0-4][0-9])|1[0-9][0-9]|[1-9]?[0-9])|[a-z0-9-]*[a-z0-9]:(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21-\x5a\x53-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])+)\])/
-  );
-const generateOTP = () => Math.floor(100000 + Math.random()* 900000).toString();
-
+const emailRegex =
+  /(?:[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*|"(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21\x23-\x5b\x5d-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])*")@(?:(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?|\[(?:(?:(2(5[0-5]|[0-4][0-9])|1[0-9][0-9]|[1-9]?[0-9]))\.){3}(?:(2(5[0-5]|[0-4][0-9])|1[0-9][0-9]|[1-9]?[0-9])|[a-z0-9-]*[a-z0-9]:(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21-\x5a\x53-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])+)\])/;
+const generateOTP = () =>
+  Math.floor(100000 + Math.random() * 900000).toString();
 
 //signup
 exports.signup = async (req, res) => {
@@ -19,36 +18,41 @@ exports.signup = async (req, res) => {
 
     // 1. Validate email & required fields
     if (!emailRegex.test(email)) {
-      return res.status(400).json({ error: 'Invalid email address' });
+      return res.status(400).json({ error: "Invalid email address" });
     }
     if (!email || !password || !phone || (!otp && !name)) {
-      return res.status(400).json({ message: 'Missing required fields' });
+      return res.status(400).json({ message: "Missing required fields" });
     }
 
     const existingUser = await User.findOne({ email });
 
     if (existingUser) {
-      return res.status(400).json({ message: 'User email already exists' });
+      return res.status(400).json({ message: "User email already exists" });
     }
 
     // 👉 STEP 1: No OTP in body = start signup (generate/send OTP)
     if (!otp) {
       const newOtp = generateOTP();
+
       const expiresAt = new Date(Date.now() + 2 * 60 * 1000); // 2 min
-
       await Otp.deleteMany({ email }); // Clear previous OTPs
-      await Otp.create({ email, otp: newOtp,expiresAt });
+      await Otp.create({ email, otp: newOtp, expiresAt });
 
-      await sendEmail(email, 'Email Verification OTP', `Your OTP is: ${newOtp}`);
+      await sendEmail(
+        email,
+        "Your Pickle Walah OTP Code (Valid for 2 Minutes)",
+        `Hi there,\n\nYour one-time password (OTP) is: ${newOtp}\n\nIt will expire in 2 minutes.\n\nThank you,\nPickle Walah Team`,
+        `<p>Hi there,</p><p>Your OTP is <strong>${newOtp}</strong>. It will expire in 2 minutes.</p><p>Thank you,<br>Pickle Walah Team</p>`,
+        "picklewalah@gmail.com"
+      );
 
-      return res.status(200).json({ message: 'OTP sent to your email' });
+      return res.status(200).json({ message: "OTP sent to your email" });
     }
 
     // 👉 STEP 2: OTP is present = verify OTP + complete signup
     const foundOtp = await Otp.findOne({ email, otp });
-
     if (!foundOtp || foundOtp.expiresAt < new Date()) {
-      return res.status(400).json({ message: 'Invalid or expired OTP' });
+      return res.status(400).json({ message: "Invalid or expired OTP" });
     }
 
     await Otp.deleteOne({ _id: foundOtp._id }); // Remove OTP after use
@@ -65,17 +69,14 @@ exports.signup = async (req, res) => {
     });
     await newUser.save();
 
-    const token = generateToken(newUser, 'user');
-    res.cookie('token', token);
-    res.status(201).json({ message: 'Signup successful ' });
-
+    const token = generateToken(newUser, "user");
+    res.cookie("token", token);
+    res.status(200).json({ message: "Signup successful " });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: error.message || 'Server error' });
+    res.status(500).json({ message: error.message || "Server error" });
   }
 };
-
-
 
 //Login
 exports.login = async (req, res) => {
