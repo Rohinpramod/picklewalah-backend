@@ -27,6 +27,7 @@ app.use(cors({
     allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
 
 }));
+console.log("CORS allowed origins:", process.env.CLIENT_URL, process.env.ADMIN_URL);
 
 
 const port = PORT;
