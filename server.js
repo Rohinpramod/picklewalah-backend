@@ -21,7 +21,7 @@ const app = express();
 app.use(express.json({ limit: '50mb' }));
 app.use(cookieParser()); 
 app.use(cors({
-    origin:[process.env.CLIENT_URL,process.env.ADMIN_URL],
+    origin:['https://picklewalah.com',''],
     credentials:true,
     methods: ["GET","POST","PUT","PATCH","DELETE"],
     allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
