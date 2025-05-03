@@ -60,6 +60,19 @@ exports.createPayment = async (req, res) => {
     });
 
     const savedPayment = await newPayment.save();
+
+    setTimeout(async () => {
+      try {
+        const payment = await Payment.findById(savedPayment._id);
+        if (payment && payment.status === 'pending') {
+          await Payment.findByIdAndDelete(payment._id);
+          console.log(`Pending payment ${payment._id} deleted after 30 seconds.`);
+        }
+      } catch (err) {
+        console.error(`Error deleting pending payment ${savedPayment._id}:`, err);
+      }
+    }, 180000);
+
     res.status(201).json({
       message: "Payment initiated successfully",
       payment: savedPayment,

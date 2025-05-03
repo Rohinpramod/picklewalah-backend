@@ -71,6 +71,18 @@ const ORDER_STATUS = [
       });
   
       await order.save();
+
+      setTimeout(async () => {
+        try {
+          const checkOrder = await Order.findById(order._id);
+          if (checkOrder && checkOrder.status === 'pending') {
+            await Order.findByIdAndDelete(order._id);
+            console.log(`Pending order ${order._id} deleted after 30 seconds.`);
+          }
+        } catch (err) {
+          console.error(`Error deleting pending order ${order._id}:`, err);
+        }
+      }, 180000);
   
       res.status(201).json({ message: "Order created successfully", order: order });
     } catch (error) {
