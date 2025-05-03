@@ -56,3 +56,7 @@ app.listen(port,()=>{
 app.all("*",(req,res) => {
     res.status(404).json({message:"End point does not exist"})
 })
+app.use(express.static(path.join(__dirname, 'build')));
+app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, 'build', 'index.html'));
+  });
