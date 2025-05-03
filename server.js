@@ -14,11 +14,9 @@ const orderRoutes = require('./routes/orderRouter');
 const authMiddleware = require("./middlewares/authMiddleware");
 const roleMiddleware = require("./middlewares/roleMiddleware");
 
-const path = require('path'); 
 const dotenv = require('dotenv');
 dotenv.config();
 const app = express();
-
 
 app.use(express.json({ limit: '50mb' }));
 app.use(cookieParser()); 
@@ -29,7 +27,7 @@ app.use(cors({
     allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
 
 }));
-console.log("CORS allowed origins:", process.env.CLIENT_URL);
+console.log("CORS allowed origins:", process.env.CLIENT_URL, process.env.ADMIN_URL);
 
 
 const port = PORT;
@@ -58,8 +56,3 @@ app.listen(port,()=>{
 app.all("*",(req,res) => {
     res.status(404).json({message:"End point does not exist"})
 })
-app.use(express.static(path.join(__dirname, 'build')));
-
-app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, 'build', 'index.html'));
-  });
