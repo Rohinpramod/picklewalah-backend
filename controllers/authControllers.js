@@ -97,10 +97,10 @@ exports.login = async (req, res) => {
     }
     const token = generateToken(userExist, "user");
     res.cookie("token", token, {
-      httpOnly: process.env.NODE_ENV === "production",
-      secure: process.env.NODE_ENV === "production",
-      sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
-      // maxAge: 60 * 60 * 1000,
+      httpOnly: true, // Prevents access via JavaScript (XSS protection)
+      secure: true, // Works only on HTTPS (important in production)
+      sameSite: "None", // Allows cross-origin requests
+      path: "/", // Available for all routes
     });
 
     res.json({ message: " Login succssfully" });
@@ -189,8 +189,11 @@ exports.resetPassword = async (req, res) => {
 //Logout
 exports.logout = (req, res) => {
   try {
-    res.clearCookie("token");
-
+    res.clearCookie("token", {
+      httpOnly: true,
+      secure: true, // Only in HTTPS (production)
+      sameSite: "None",
+    });
     res.status(200).json({ message: "Logout Successfully" });
   } catch (error) {
     res.status(500).json({ message: error.message });
