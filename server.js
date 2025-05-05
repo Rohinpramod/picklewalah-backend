@@ -23,12 +23,12 @@ app.use(cookieParser());
 app.use(cors({
     origin:['https://picklewalah.com','pickle-walah-dashboard.vercel.app'],
     credentials:true,
-    methods: ["GET","POST","PUT","PATCH","DELETE","OPTIONS"],
+    methods: ["GET","POST","PUT","PATCH","DELETE"],
     allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
 
 }));
 
-app.options("*",cors());
+
 
 
 
